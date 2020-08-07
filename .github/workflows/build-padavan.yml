@@ -51,6 +51,9 @@ jobs:
         cd /opt/Btools/LANG_CN/
         sh install_LANG_CN.sh
         #
+        cd /opt/Btools/Theme/
+        sh install_Theme.sh
+        #
         cd /opt/Btools/build_toolchain
         sh install_build_toolchain.sh
         #
