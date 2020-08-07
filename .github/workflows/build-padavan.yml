@@ -10,7 +10,7 @@ on:
     branches: 
       - master
   schedule:
-    - cron: 0 8 * * 5
+    - cron: 0 19 * * *
   watch:
     types: [started]
 
@@ -72,3 +72,15 @@ jobs:
       with:
         name: Padavan-packages
         path: /opt/images
+    - name: Upload firmware to cowtransfer
+      if: always()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress /opt/images 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+    - name: Upload firmware to WeTransfer
+      if: always()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress /opt/images 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
