@@ -1,0 +1,5 @@
+替换Padavan源码中trunk/vendors/Ralink/MT7620/目录下的MT7612E_EEPROM.bin和MT7620_AP_2T2R-4L_external_LNA_external_PA_V15.bin。
+因为我们是外置的PA和LNA，所以要替换MT7620_AP_2T2R-4L_external_LNA_external_PA_V15.bin文件，记得是用MT7620_AP_2T2R-4L_V15.BIN来替换。
+
+一键穿墙使用MT7620_AP_2T2R-4L_V15.BIN文件的参数；
+绿色节能使用MT7620_AP_2T2R-4L_V13.BIN文件的参数。

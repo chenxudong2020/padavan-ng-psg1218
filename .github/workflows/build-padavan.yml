@@ -54,6 +54,9 @@ jobs:
         cd /opt/Btools/Theme/
         sh install_Theme.sh
         #
+        cd /opt/Btools/Patch/
+        sh install_Patch.sh
+        #
         cd /opt/Btools/build_toolchain
         sh install_build_toolchain.sh
         #
