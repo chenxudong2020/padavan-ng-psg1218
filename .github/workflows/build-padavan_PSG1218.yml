@@ -1,5 +1,5 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: Build Padavan
+name: Build Padavan_PSG1218
 
 on: 
   release:
@@ -13,7 +13,8 @@ on:
     - cron: 0 19 * * *
   watch:
     types: [started]
-
+env:
+  Config_File: "PSG1218.config"
 jobs:
   build:
     runs-on: ubuntu-18.04
@@ -45,6 +46,7 @@ jobs:
         git clone --depth=1 https://github.com/hminid/padavan-ng.git /opt/rt-n56u
         mkdir -p /opt/images/
         #
+        CONFIG_FILENAME=$Config_File
         cd /opt/Btools/Setconfig/
         sh install_Setconfig.sh
         #
