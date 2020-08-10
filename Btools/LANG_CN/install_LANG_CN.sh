@@ -20,5 +20,9 @@ ROOTDIR=`pwd`
 \cp -f ${ROOTDIR}/SSID/httpd.h ${DESTDIR}/trunk/user/httpd/httpd.h
 \cp -f ${ROOTDIR}/SSID/common_ex.c ${DESTDIR}/trunk/user/rc/common_ex.c
 \cp -f ${ROOTDIR}/SSID/general.js ${DESTDIR}/trunk/user/www/n56u_ribbon_fixed/general.js
+\cp -f ${ROOTDIR}/SSID/cmm_info.c ${DESTDIR}/trunk/proprietary/rt_wifi/rtsoc/2.7.X.X/rt2860v2/common/cmm_info.c
+\cp -f ${ROOTDIR}/SSID/rtmp_def.h ${DESTDIR}/trunk/proprietary/rt_wifi/rtsoc/2.7.X.X/rt2860v2/include/rtmp_def.h
+\cp -f ${ROOTDIR}/SSID/rc.h ${DESTDIR}/trunk/user/rc/rc.h
+\cp -f ${ROOTDIR}/SSID/ralink.c ${DESTDIR}/trunk/user/httpd/ralink.c
     echo "--------------复制中文SSID支持文件结束----------"
 	
