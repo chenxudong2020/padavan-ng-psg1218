@@ -17,13 +17,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 #include <time.h>
 #include <signal.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/sysinfo.h>
-#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <syslog.h>
@@ -120,21 +120,14 @@ mac_conv2(const char *mac_nvkey, int idx, char *buf)
 	return (buf);
 }
 
-int
-valid_subver(char subfs)
-{
-	printf("validate subfs: %c\n", subfs);	// tmp test
-	if(((subfs >= 'a') && (subfs <= 'z' )) || ((subfs >= 'A') && (subfs <= 'Z' )))
-		return 1;
-	else
-		return 0;
-}
-
 void
 get_eeprom_params(void)
 {
 #if defined (VENDOR_ASUS)
 	int i;
+#endif
+#if defined (VENDOR_TPLINK)
+	unsigned char buffer_compare[32];
 #endif
 	int i_offset, i_ret;
 	unsigned char buffer[32];
@@ -147,14 +140,41 @@ get_eeprom_params(void)
 	char regspec_code[8];
 	char wps_pin[12];
 	char productid[16];
-	char fwver[8], fwver_sub[32];
+	char fwver[10], fwver_sub[36];
 
+	memset(buffer, 0xff, ETHER_ADDR_LEN);
+#if defined (VENDOR_TPLINK)
+	i_ret = flash_mtd_read("Romfile", 0xf100, buffer, ETHER_ADDR_LEN);
+	// Try Factory partition
+	if (i_ret < 0)
+		i_ret = flash_mtd_read(MTD_PART_NAME_FACTORY, 0xf100, buffer, ETHER_ADDR_LEN);
+	if (i_ret >=0 && !(buffer[0] & 0x01)) {
+		ether_etoa(buffer, macaddr_lan);
+		ether_etoa(buffer, macaddr_rt);
+		i_ret = flash_mtd_read(MTD_PART_NAME_FACTORY, OFFSET_MAC_ADDR_WSOC, buffer_compare, ETHER_ADDR_LEN);
+		if (i_ret >= 0 && memcmp(buffer, buffer_compare, ETHER_ADDR_LEN) != 0) {
+			// write mac to ralink eeprom 2,4 Ghz
+			flash_mtd_write(MTD_PART_NAME_FACTORY, OFFSET_MAC_ADDR_WSOC, buffer, ETHER_ADDR_LEN);
+		}
+		buffer[5] += 1;
+		ether_etoa(buffer, macaddr_wan);
+		buffer[5] -= 2;
+		ether_etoa(buffer, macaddr_wl);
+#if defined (BOARD_HAS_5G_RADIO)
+		i_ret = flash_mtd_read(MTD_PART_NAME_FACTORY, OFFSET_MAC_ADDR_INIC, buffer_compare, ETHER_ADDR_LEN);
+		if (i_ret >= 0 && memcmp(buffer, buffer_compare, ETHER_ADDR_LEN) != 0) {
+			// write mac to ralink eeprom 5 Ghz
+			flash_mtd_write(MTD_PART_NAME_FACTORY, OFFSET_MAC_ADDR_INIC, buffer, ETHER_ADDR_LEN);
+		}
+#endif
+	} else {
+		// no Romfile partition or error. Switch to ralink standart
+#endif
 #if (BOARD_5G_IN_SOC || !BOARD_HAS_5G_RADIO)
 	i_offset = OFFSET_MAC_ADDR_WSOC;
 #else
 	i_offset = OFFSET_MAC_ADDR_INIC;
 #endif
-	memset(buffer, 0xff, ETHER_ADDR_LEN);
 	i_ret = flash_mtd_read(MTD_PART_NAME_FACTORY, i_offset, buffer, ETHER_ADDR_LEN);
 	if (i_ret >= 0 && !(buffer[0] & 0x01))
 		ether_etoa(buffer, macaddr_wl);
@@ -210,6 +230,9 @@ get_eeprom_params(void)
 			ether_etoa(buffer, macaddr_wan);
 		}
 	}
+#if defined (VENDOR_TPLINK)
+	}
+#endif
 
 	nvram_set_temp("il0macaddr", macaddr_lan); // LAN
 	nvram_set_temp("il1macaddr", macaddr_wan); // WAN
@@ -253,7 +276,7 @@ get_eeprom_params(void)
 			if ((unsigned char)regspec_code[i] > 0x7f)
 				regspec_code[i] = 0;
 		}
-		
+
 		if (!check_regspec_code(regspec_code))
 			strcpy(regspec_code, "CE");
 	}
@@ -300,38 +323,32 @@ get_eeprom_params(void)
 		}
 	}
 #endif
-
-	/* read firmware header */
+	/* build firmware vesion vars */
+	snprintf(productid, sizeof(productid), "%s", BOARD_PID);
+#if defined(FWVERSTR)
+	if (sizeof(FWVERSTR) > 0 && sizeof(FWVERSTR) <= 9) {
+		// check if FWVERSTR have subversion code
+		strcpy(fwver_sub, FWVERSTR);
+		strcpy(fwver, fwver_sub);
+		// remove alphabet code from fwver if exist
+		if (isalpha(fwver[sizeof(FWVERSTR) - 2]))
+			fwver[sizeof(FWVERSTR) - 2] = 0;
+	} else {
+#endif
 	strcpy(fwver, "3.0.0.0");
 	strcpy(fwver_sub, fwver);
-	snprintf(productid, sizeof(productid), "%s", BOARD_PID);
-	memset(buffer, 0, sizeof(buffer));
-	i_ret = flash_mtd_read(MTD_PART_NAME_KERNEL, 0x20, buffer, 32);
-	if (i_ret < 0) {
-		nvram_set_temp("productid", "unknown");
-		nvram_set_temp("firmver", "unknown");
-	} else {
-		strncpy(productid, buffer + 4, 12);
-		productid[12] = 0;
-		
-		if(valid_subver(buffer[27]))
-			sprintf(fwver_sub, "%d.%d.%d.%d%c", buffer[0], buffer[1], buffer[2], buffer[3], buffer[27]);
-		else
-			sprintf(fwver_sub, "%d.%d.%d.%d", buffer[0], buffer[1], buffer[2], buffer[3]);
-		
-		sprintf(fwver, "%d.%d.%d.%d", buffer[0], buffer[1], buffer[2], buffer[3]);
+#if defined(FWVERSTR)
 	}
-
+#endif
 #if defined(FWBLDSTR)
-	if (strlen(FWBLDSTR) > 0 && strlen(FWBLDSTR) <= 4) {
-		strcat(fwver_sub, "-");
-		strcat(fwver_sub, FWBLDSTR);
+	if (sizeof(FWBLDSTR) > 0 && sizeof(FWBLDSTR) <= 4) {
+		strcat(fwver_sub, "-"FWBLDSTR);
 	}
 #endif
 #if defined(FWREVSTR)
-	if (strlen(FWREVSTR) > 0 && strlen(FWREVSTR) <= 8) {
-		strcat(fwver_sub, "_");
-		strcat(fwver_sub, FWREVSTR);
+	if (sizeof(FWREVSTR) > 0) {
+		// copy only 7 symbols of revision version
+		strncat(fwver_sub, "_"FWREVSTR, 8);
 	}
 #endif
 	nvram_set_temp("productid", trim_r(productid));
@@ -365,7 +382,7 @@ get_eeprom_params(void)
 					count_0xff++;
 			}
 		}
-		
+
 		nvram_wlan_set_int(1, "txbf_en", (count_0xff == 33) ? 0 : 1);
 	}
 #endif
@@ -422,167 +439,34 @@ restart_all_sysctl(void)
 #endif
 }
 
-
-/**
- * hex char to int
- * @author 荒野无灯
- * @date 2016-08-01 12:30
- * @param hex
- * @return int
- */
-static int hex_char_to_int(const uint8_t *hex)
-{
-        int val;
-        if(*hex >= '0' && *hex <='9') {
-                val = (*hex - '0') * 16;
-        } else {
-                val = (*hex - 'A' + 10) * 16;
-        }
-
-        if(*(hex+1) >= '0' && *(hex+1) <='9') {
-                val += (*(hex+1) - '0');
-        } else {
-                val += (*(hex+1) - 'A' +10);
-        }
-        return val;
-}
-
-/**
- * @author 荒野无灯
- * @date 2016-08-01 12:30
- * @param str the str to detect
- * @param sz string total bytes
- * @return
- */
-static int can_be_chinese_utf8(const uint8_t *str, int sz)
-{
-        int len = strlen (str);
-        if (sz < 6) {
-                return 0;
-        }
-
-        if ((len >= 6) &&
-                (hex_char_to_int(str) >= 0xe4 && hex_char_to_int(str) <= 0xe9)
-                && (hex_char_to_int(str+2) >= 0x80 && hex_char_to_int(str+2) <= 0xbf)
-                && (hex_char_to_int(str+4) >= 0x80 && hex_char_to_int(str+4) <= 0xbf)
-                        ) {
-                return 1;
-        }
-        if ( ((sz - len >= 2) && (len >=4)) &&
-                 (hex_char_to_int(str-2) >= 0xe4 && hex_char_to_int(str-2) <= 0xe9)
-                 && (hex_char_to_int(str) >= 0x80 && hex_char_to_int(str) <= 0xbf)
-                 && (hex_char_to_int(str+2) >= 0x80 && hex_char_to_int(str+2) <= 0xbf)
-                        ) {
-                return 1;
-        }
-        if (((sz - len >= 4) && (len >= 2))
-                && (hex_char_to_int(str-4) >= 0xe4 && hex_char_to_int(str-4) <= 0xe9 )
-                && ((hex_char_to_int(str-2) >= 0x80 && hex_char_to_int(str-2) <= 0xbf)
-                        || (hex_char_to_int(str) >= 0x80 && hex_char_to_int(str) <= 0xbf))) {
-                return 1;
-        }
-        return 0;
-}
-
-/**
- * @author 荒野无灯
- * @date 2016-08-01 12:30
- * @param str the str to detect
- * @param sz string total bytes
- * @return int
- */
-static int can_be_ascii_utf8(const uint8_t *str, int sz)
-{
-        int len = strlen (str);
-        uint8_t the_char = hex_char_to_int(str);
-        /*printf("ascii detect:  ascii_val: %d, canbe char: %c\n", the_char, the_char);*/
-        if (( len >= 2) &&
-                (the_char >= '0' && the_char <= '9')
-                || (the_char >= 'A' && the_char <= 'Z')
-                || (the_char >= 'a' && the_char <= 'z')
-                || the_char == '!' || the_char == '*'
-                || the_char == '(' || the_char == ')'
-                || the_char == '_' || the_char == '-'
-                || the_char == '\'' || the_char == '.') {
-                return 1;
-        }
-        return 0;
-}
-
-/**
- * @param input the string to validate
- * @author 荒野无灯
- * @date 2016-08-01 12:30
- * @return int
- */
-static int is_valid_hex_string(uint8_t *input)
-{
-        int i;
-        int input_len, input_hex_len;
-        char *input_ptr;
-
-        //detect from index 2, skip char "0x"
-        input_ptr = input+2;
-        input_len = strlen(input);
-        input_hex_len = input_len -2;
-        int is_valid_ascii_or_Chinese = 1;
-        //0xAA
-        if(input_len >4 && input_len % 2 == 0 && input[0] == '0' && input[1] == 'x') {
-                for ( i=0; i<input_hex_len; i+=2, input_ptr+=2 ) {
-                        if (!( ((*input_ptr>='0' && *input_ptr <='9') || ( *input_ptr >='A' && *input_ptr <='F'))
-                                   && ((*(input_ptr+1) >='0' && *(input_ptr+1) <='9') || ( *(input_ptr+1) >='A' && *(input_ptr+1) <='F')))
-                                        ) {
-                                is_valid_ascii_or_Chinese = 0;
-                                break;
-                        }
-                        if (!can_be_chinese_utf8(input_ptr, input_hex_len) && !can_be_ascii_utf8(input_ptr, input_hex_len)) {
-                                is_valid_ascii_or_Chinese = 0;
-                                break;
-                        }
-                }
-        } else {
-                is_valid_ascii_or_Chinese = 0;
-        }
-        return is_valid_ascii_or_Chinese;
-}
-
 void
-char_to_ascii(char *output, uint8_t *input)
+char_to_ascii(char *output, char *input)
 {
-        int i;
-        char tmp[10];
-        char *ptr;
-        int input_len;
+	int i;
+	char tmp[10];
+	char *ptr;
 
-        ptr = output;
-        input_len = strlen(input);
+	ptr = output;
 
-        if(is_valid_hex_string(input)) {
-                for ( i=2; i<input_len; i +=2 ) {
-                        sprintf(tmp, "%%%c%c", input[i], input[i+1]);
-                        strcpy(ptr, tmp);
-                        ptr+=3;
-                }
-        }  else {
-                for ( i=0; i<input_len; i++ ) {
-                        if ((input[i]>='0' && input[i] <='9')
-                                ||(input[i]>='A' && input[i]<='Z')
-                                ||(input[i] >='a' && input[i]<='z')
-                                || input[i] == '!' || input[i] == '*'
-                                || input[i] == '(' || input[i] == ')'
-                                || input[i] == '_' || input[i] == '-'
-                                || input[i] == '\'' || input[i] == '.') {
-                                *ptr = input[i];
-                                ptr++;
-                        } else {
-                                sprintf(tmp, "%%%.02X", input[i]);
-                                strcpy(ptr, tmp);
-                                ptr += 3;
-                        }
-                }
-        }
-        *ptr = '\0';
+	for ( i=0; i<strlen(input); i++ ) {
+		if ((input[i]>='0' && input[i] <='9')
+		   ||(input[i]>='A' && input[i]<='Z')
+		   ||(input[i] >='a' && input[i]<='z')
+		   || input[i] == '!' || input[i] == '*'
+		   || input[i] == '(' || input[i] == ')'
+		   || input[i] == '_' || input[i] == '-'
+		   || input[i] == '\'' || input[i] == '.') {
+			*ptr = input[i];
+			ptr ++;
+		} else {
+			sprintf(tmp, "%%%.02X", input[i]);
+			strcpy(ptr, tmp);
+			ptr += 3;
+		}
+	}
+	*(ptr) = '\0';
 }
+
 int
 fput_string(const char *name, const char *value)
 {
@@ -778,177 +662,6 @@ oom_score_adjust(pid_t pid, int oom_score_adj)
 	snprintf(proc_path, sizeof(proc_path), "/proc/%u/oom_score_adj", pid);
 	fput_int(proc_path, oom_score_adj);
 }
-
-#if defined (CONFIG_RALINK_MT7621)
-static void
-irq_affinity_set(int irq_num, int cpu)
-{
-	char proc_path[40];
-
-	snprintf(proc_path, sizeof(proc_path), "/proc/irq/%d/smp_affinity", irq_num);
-	fput_int(proc_path, cpu);
-}
-
-static void
-rps_queue_set(const char *ifname, int cpu_mask)
-{
-	char proc_path[64], cmx[4];
-
-	snprintf(proc_path, sizeof(proc_path), "/sys/class/net/%s/queues/rx-%d/rps_cpus", ifname, 0);
-	snprintf(cmx, sizeof(cmx), "%x", cpu_mask);
-	fput_string(proc_path, cmx);
-}
-
-static void
-xps_queue_set(const char *ifname, int cpu_mask)
-{
-	char proc_path[64], cmx[4];
-
-	snprintf(proc_path, sizeof(proc_path), "/sys/class/net/%s/queues/tx-%d/xps_cpus", ifname, 0);
-	snprintf(cmx, sizeof(cmx), "%x", cpu_mask);
-	fput_string(proc_path, cmx);
-}
-
-void
-set_cpu_affinity(int is_ap_mode)
-{
-	/* set initial IRQ affinity and RPS/XPS balancing */
-	int ncpu = sysconf(_SC_NPROCESSORS_ONLN);
-
-#define GIC_IRQ_FE	(GIC_OFFSET+3)
-#define GIC_IRQ_PCIE0	(GIC_OFFSET+4)
-#define GIC_IRQ_PCIE1	(GIC_OFFSET+24)
-#define GIC_IRQ_PCIE2	(GIC_OFFSET+25)
-#define GIC_IRQ_SDXC	(GIC_OFFSET+20)
-#define GIC_IRQ_XHCI	(GIC_OFFSET+22)
-#define GIC_IRQ_EIP93	(GIC_OFFSET+19)
-
-	if (ncpu == 4) {
-		irq_affinity_set(GIC_IRQ_FE,    2);	/* GMAC  -> CPU:0, VPE:1 */
-		irq_affinity_set(GIC_IRQ_PCIE0, 4);	/* PCIe0 -> CPU:1, VPE:0 (usually rai0) */
-		irq_affinity_set(GIC_IRQ_PCIE1, 8);	/* PCIe1 -> CPU:1, VPE:1 (usually ra0) */
-		irq_affinity_set(GIC_IRQ_PCIE2, 1);	/* PCIe2 -> CPU:0, VPE:0 (usually ahci) */
-		irq_affinity_set(GIC_IRQ_SDXC,  4);	/* SDXC  -> CPU:1, VPE:0 */
-		irq_affinity_set(GIC_IRQ_XHCI,  8);	/* xHCI  -> CPU:1, VPE:1 */
-		irq_affinity_set(GIC_IRQ_EIP93, 8);	/* EIP93 -> CPU:1, VPE:1 */
-		
-		rps_queue_set(IFNAME_2G_MAIN,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_MAIN,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		rps_queue_set(IFNAME_2G_GUEST, 0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_GUEST, 0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		rps_queue_set(IFNAME_2G_APCLI, 0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_APCLI, 0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS0,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS0,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS1,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS1,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS2,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS2,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS3,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS3,  0x8);	/* CPU:1, VPE:1 (PCIe1) */
-#if BOARD_HAS_5G_RADIO
-		rps_queue_set(IFNAME_5G_MAIN,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_MAIN,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		rps_queue_set(IFNAME_5G_GUEST, 0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_GUEST, 0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		rps_queue_set(IFNAME_5G_APCLI, 0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_APCLI, 0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS0,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS0,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS1,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS1,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS2,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS2,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS3,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS3,  0x4);	/* CPU:1, VPE:0 (PCIe0) */
-#endif
-		if (is_ap_mode) {
-			rps_queue_set(IFNAME_MAC, 0x3);	/* CPU:0, VPE:0+1 */
-			xps_queue_set(IFNAME_MAC, 0x3);	/* CPU:0, VPE:0+1 */
-		} else {
-			rps_queue_set(IFNAME_LAN, 0x2);	/* CPU:0, VPE:1 */
-			xps_queue_set(IFNAME_LAN, 0x2);	/* CPU:0, VPE:1 */
-			rps_queue_set(IFNAME_WAN, 0x2);	/* CPU:0, VPE:1 */
-			xps_queue_set(IFNAME_WAN, 0x2);	/* CPU:0, VPE:1 */
-#if defined (USE_SINGLE_MAC)
-			rps_queue_set(IFNAME_MAC, 0x2);	/* CPU:0, VPE:1 */
-			xps_queue_set(IFNAME_MAC, 0x2);	/* CPU:0, VPE:1 */
-#endif
-		}
-		
-	} else if (ncpu == 2) {
-		irq_affinity_set(GIC_IRQ_FE,    1);	/* GMAC  -> CPU:0, VPE:0 */
-		irq_affinity_set(GIC_IRQ_PCIE0, 2);	/* PCIe0 -> CPU:0, VPE:1 (usually rai0) */
-		irq_affinity_set(GIC_IRQ_PCIE1, 1);	/* PCIe1 -> CPU:0, VPE:0 (usually ra0) */
-		irq_affinity_set(GIC_IRQ_PCIE2, 1);	/* PCIe2 -> CPU:0, VPE:0 (usually ahci) */
-		irq_affinity_set(GIC_IRQ_SDXC,  2);	/* SDXC  -> CPU:0, VPE:1 */
-		irq_affinity_set(GIC_IRQ_XHCI,  2);	/* xHCI  -> CPU:0, VPE:1 */
-		irq_affinity_set(GIC_IRQ_EIP93, 2);	/* EIP93 -> CPU:0, VPE:1 */
-		
-		rps_queue_set(IFNAME_2G_MAIN,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_MAIN,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		rps_queue_set(IFNAME_2G_GUEST, 0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_GUEST, 0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		rps_queue_set(IFNAME_2G_APCLI, 0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_APCLI, 0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS0,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS0,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS1,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS1,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS2,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS2,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		rps_queue_set(IFNAME_2G_WDS3,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-		xps_queue_set(IFNAME_2G_WDS3,  0x1);	/* CPU:0, VPE:0 (PCIe1) */
-#if BOARD_HAS_5G_RADIO
-		rps_queue_set(IFNAME_5G_MAIN,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_MAIN,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		rps_queue_set(IFNAME_5G_GUEST, 0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_GUEST, 0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		rps_queue_set(IFNAME_5G_APCLI, 0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_APCLI, 0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS0,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS0,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS1,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS1,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS2,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS2,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		rps_queue_set(IFNAME_5G_WDS3,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-		xps_queue_set(IFNAME_5G_WDS3,  0x2);	/* CPU:0, VPE:1 (PCIe0) */
-#endif
-		if (is_ap_mode) {
-			rps_queue_set(IFNAME_MAC, 0x3);	/* CPU:0, VPE:0+1 */
-			xps_queue_set(IFNAME_MAC, 0x3);	/* CPU:0, VPE:0+1 */
-		} else {
-			rps_queue_set(IFNAME_LAN, 0x1);	/* CPU:0, VPE:0 (GMAC) */
-			xps_queue_set(IFNAME_LAN, 0x1);	/* CPU:0, VPE:0 (GMAC) */
-			rps_queue_set(IFNAME_WAN, 0x1);	/* CPU:0, VPE:0 (GMAC) */
-			xps_queue_set(IFNAME_WAN, 0x1);	/* CPU:0, VPE:0 (GMAC) */
-#if defined (USE_SINGLE_MAC)
-			rps_queue_set(IFNAME_MAC, 0x1);	/* CPU:0, VPE:0 (GMAC) */
-			xps_queue_set(IFNAME_MAC, 0x1);	/* CPU:0, VPE:0 (GMAC) */
-#endif
-		}
-	}
-}
-
-void
-set_vpn_balancing(const char *vpn_ifname)
-{
-	/* set RPS/XPS balancing for PPP/SIT/TUN/TAP interfaces */
-	int ncpu = sysconf(_SC_NPROCESSORS_ONLN);
-
-	if (ncpu == 4) {
-		rps_queue_set(vpn_ifname, 0x8);	/* CPU:1, VPE:1 */
-		xps_queue_set(vpn_ifname, 0x8);	/* CPU:1, VPE:1 */
-	} else if (ncpu == 2) {
-		rps_queue_set(vpn_ifname, 0x2);	/* CPU:0, VPE:1 */
-		xps_queue_set(vpn_ifname, 0x2);	/* CPU:0, VPE:1 */
-	}
-}
-#else
-inline void set_cpu_affinity(int is_ap_mode) {}
-inline void set_vpn_balancing(const char *vpn_ifname) {}
-#endif
 
 #if defined (USE_NAND_FLASH)
 void mount_rwfs_partition(void)
