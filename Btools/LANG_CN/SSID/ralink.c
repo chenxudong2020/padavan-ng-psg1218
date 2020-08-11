@@ -1519,7 +1519,7 @@ ej_wl_scan_xg(const char * net_device, int eid, webs_t wp, int argc, char **argv
 			if (apCount)
 				retval += websWrite(wp, "%s ", ",");
 
-			retval += websWrite(wp, "[\"%s\", \"%s\", \"%s\", \"%s\"]",  trim_r(site_ssid),, trim_r(site_bssid), trim_r(site_chnl), trim_r(site_signal));
+			retval += websWrite(wp, "[\"%s\", \"%s\", \"%s\", \"%s\"]",  trim_r(site_ssid), trim_r(site_bssid), trim_r(site_chnl), trim_r(site_signal));
 
 //			dbg("%s\n", site_line);
 
