@@ -2,7 +2,3 @@ trunk/user/httpd/aspbw.c
  trunk/user/httpd/httpd.h
  trunk/user/www/n56u_ribbon_fixed/general.js
 trunk/user/rc/common_ex.c
-trunk/proprietary/rt_wifi/rtsoc/2.7.X.X/rt2860v2/common/cmm_info.c
-trunk/proprietary/rt_wifi/rtsoc/2.7.X.X/rt2860v2/include/rtmp_def.h
-trunk/user/rc/rc.h
-trunk/user/httpd/ralink.c
