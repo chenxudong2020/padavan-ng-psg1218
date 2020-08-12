@@ -4,6 +4,7 @@ DESTDIR=/opt/rt-n56u
 ROOTDIR=`pwd`
 	echo "--------------开始复制语言文件------------------"
       \cp -f ${ROOTDIR}/defaults.h ${DESTDIR}/trunk/user/shared/defaults.h 	
+	  \cp -f ${ROOTDIR}/net_wan.c ${DESTDIR}/trunk/user/rc/net_wan.c
 	if [ -e "${ROOTDIR}/Makefile" ] ; then
 		cp -f "${ROOTDIR}/Makefile" "${DESTDIR}/trunk/user/www/"
 	fi
