@@ -28,8 +28,8 @@ jobs:
         echo "###########################"
         pwd
         #
-        sudo mv Btools /opt/
-        cd /opt/Btools
+        sudo mv Atools /opt/
+        cd /opt/Atools
         echo "sudo ls -l"
         pwd
         sudo ls -l
@@ -47,7 +47,7 @@ jobs:
     - name: Clone source code
       run: |
         git clone https://github.com/KevinandJacky/RT-AC1200HP_3.0.0.4.380.8287-for-K2.git /opt/asus
-        cd /opt/Btools/asus/
+        cd /opt/Atools/asus/
         sh install_Patch.sh
          
     - name: Build Firmware
