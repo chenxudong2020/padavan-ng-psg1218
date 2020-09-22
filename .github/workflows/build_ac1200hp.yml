@@ -1,0 +1,76 @@
+name: Build build_AC1200HP_K2
+
+on: 
+  release:
+    types: [published]
+  push:
+    tags:
+    - 'v*'
+    branches: 
+      - master
+  schedule:
+    - cron: 0 19 * * *
+  watch:
+    types: [started]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        echo "###########################"
+        pwd
+        #
+        sudo mv Btools /opt/
+        cd /opt/Btools
+        echo "sudo ls -l"
+        pwd
+        sudo ls -l
+        echo "###########################"
+        #
+        sudo apt-get update
+        sudo apt-get install git autoconf automake bash bison bzip2 diffutils file flex 
+        sudo apt-get install m4 g++ gawk groff-base libncurses-dev libtool libslang2 make patch perl 
+        sudo apt-get install pkg-config shtool subversion tar texinfo zlib1g zlib1g-dev git-core gettext 
+        sudo apt-get install libexpat1-dev libssl-dev cvs gperf unzip python libxml-parser-perl gcc-multilib 
+        sudo apt-get install gconf-editor libxml2-dev g++-4.7 g++-multilib gitk libncurses5 mtd-utils 
+        sudo apt-get install libncurses5-dev libstdc++6-4.7-dev libvorbis-dev g++-4.7-multilib git autopoint 
+        sudo apt-get install autogen sed build-essential intltool libelf1:i386 libglib2.0-dev xutils-dev
+        sudo apt-get install lib32z1-dev lib32stdc++6
+    - name: Clone source code
+      run: |
+        git clone --depth=1 https://github.com/KevinandJacky/RT-AC1200HP_3.0.0.4.380.8287-for-K2.git /opt/asus
+        cd /opt/Btools/asus/
+        sh install_Patch.sh
+         
+    - name: Build Firmware
+      run: |
+        cd /opt/asus
+        sudo chmod +x build.sh
+        sudo ./build.sh
+        sudo mv -f release/src-ra-mt7620/image/*.* /opt/images/
+    - name : Upload packages
+      uses: actions/upload-artifact@master
+      if: always()
+      with:
+        name: AC1200HP-packages
+        path: /opt/images
+    - name: Upload firmware to cowtransfer
+      if: always()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress /opt/images 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+    - name: Upload firmware to WeTransfer
+      if: always()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress /opt/images 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
