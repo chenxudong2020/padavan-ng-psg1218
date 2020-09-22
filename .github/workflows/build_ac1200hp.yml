@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
@@ -46,7 +46,7 @@ jobs:
          lib32z1-dev lib32stdc++6
     - name: Clone source code
       run: |
-        git clone --depth=1 https://github.com/KevinandJacky/RT-AC1200HP_3.0.0.4.380.8287-for-K2.git /opt/asus
+        git clone https://github.com/KevinandJacky/RT-AC1200HP_3.0.0.4.380.8287-for-K2.git /opt/asus
         cd /opt/Btools/asus/
         sh install_Patch.sh
          
