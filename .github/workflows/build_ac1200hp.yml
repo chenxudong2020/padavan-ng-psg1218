@@ -55,22 +55,21 @@ jobs:
         cd /opt/asus
         sudo chmod +x build.sh
         sudo ./build.sh
-        sudo mv -f release/src-ra-mt7620/image/*.* /opt/images/
     - name : Upload packages
       uses: actions/upload-artifact@master
       if: always()
       with:
         name: AC1200HP-packages
-        path: /opt/images
+        path: /opt/asus/release/src-ra-mt7620/image
     - name: Upload firmware to cowtransfer
       if: always()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer cow --block 2621440 -s -p 64 --no-progress /opt/images 2>&1 | tee cowtransfer.log
+        ./transfer cow --block 2621440 -s -p 64 --no-progress /opt/asus/release/src-ra-mt7620/image 2>&1 | tee cowtransfer.log
         echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
     - name: Upload firmware to WeTransfer
       if: always()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer wet -s -p 16 --no-progress /opt/images 2>&1 | tee wetransfer.log
+        ./transfer wet -s -p 16 --no-progress /opt/asus/release/src-ra-mt7620/image 2>&1 | tee wetransfer.log
         echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
