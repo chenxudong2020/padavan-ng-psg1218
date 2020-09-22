@@ -47,7 +47,7 @@ jobs:
     - name: Clone source code
       run: |
         git clone https://github.com/KevinandJacky/RT-AC1200HP_3.0.0.4.380.8287-for-K2.git /opt/asus
-        cd /opt/Atools/asus/
+        cd /opt/Atools
         sh install_Patch.sh
          
     - name: Build Firmware
