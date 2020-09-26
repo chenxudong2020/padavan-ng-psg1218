@@ -6,7 +6,8 @@ ROOTDIR=`pwd`
 
 
 echo "--------------开始应用补丁----------------------"
- \cp -f ${ROOTDIR}/build.sh ${DESTDIR}/build.sh
+  \cp -f ${ROOTDIR}/build.sh ${DESTDIR}/build.sh
+  \cp -f ${ROOTDIR}/diy/init.c ${DESTDIR}/release/src/router/rc/init.c
 echo "--------------应用补丁结束------------------"
     
  
