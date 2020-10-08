@@ -44,6 +44,8 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/TurBoTse/padavan-ng.git /opt/rt-n56u
         mkdir -p /opt/images/
+    - name: Build target code
+      run: |
          #
         cd /opt/Ctools/Setconfig/
         sh install_Setconfig.sh
