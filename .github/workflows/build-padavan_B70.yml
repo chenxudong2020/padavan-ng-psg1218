@@ -46,7 +46,6 @@ jobs:
         mkdir -p /opt/images/
     - name: Build target code
       run: |
-         #
         cd /opt/Ctools/Setconfig/
         sh install_Setconfig.sh
         #
