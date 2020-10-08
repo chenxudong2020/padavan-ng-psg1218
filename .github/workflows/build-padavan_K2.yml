@@ -1,0 +1,86 @@
+#修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
+name: Build Padavan_K2
+
+on: 
+  release:
+    types: [published]
+  push:
+    tags:
+    - 'v*'
+    branches: 
+      - master
+  schedule:
+    - cron: 0 19 * * *
+  watch:
+    types: [started]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        echo "###########################"
+        pwd
+        #
+        sudo mv Btools /opt/
+        cd /opt/Btools
+        echo "sudo ls -l"
+        pwd
+        sudo ls -l
+        echo "###########################"
+        #
+        sudo apt-get update
+        sudo apt-get -y install unzip libtool-bin curl cmake gperf gawk flex bison nano xxd \
+        cpio git python-docutils gettext automake autopoint texinfo build-essential help2man \
+        pkg-config zlib1g-dev libgmp3-dev libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev gcc-multilib
+    - name: Clone source code
+      run: |
+        git clone --depth=1 https://github.com/TurBoTse/padavan-ng.git /opt/rt-n56u
+        mkdir -p /opt/images/
+        #
+        cd /opt/Btools/Setconfig/
+        sh install_Setconfig.sh
+        #
+        cd /opt/Btools/LANG_CN/
+        sh install_LANG_CN.sh
+        #
+         cd /opt/Btools/Theme/
+        sh install_Theme.sh
+        #
+        cd /opt/Btools/Patch/
+        sh install_Patch.sh
+        #
+        cd /opt/Btools/build_toolchain
+        sh install_build_toolchain.sh
+        #
+    - name: Build Firmware
+      run: |
+        cd /opt/rt-n56u/trunk
+        sudo ./clear_tree.sh
+        sudo ./build_firmware.sh
+        sudo mv -f images/*.trx /opt/images/
+    - name : Upload packages
+      uses: actions/upload-artifact@master
+      if: always()
+      with:
+        name: Padavan-packages
+        path: /opt/images
+    - name: Upload firmware to cowtransfer
+      if: always()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress /opt/images 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+    - name: Upload firmware to WeTransfer
+      if: always()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress /opt/images 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"

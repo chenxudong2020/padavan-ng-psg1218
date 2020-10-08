@@ -1,5 +1,5 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: Build Padavan
+name: Build Padavan_B70
 
 on: 
   release:
@@ -29,8 +29,8 @@ jobs:
         echo "###########################"
         pwd
         #
-        sudo mv Btools /opt/
-        cd /opt/Btools
+        sudo mv Ctools /opt/
+        cd /opt/Ctools
         echo "sudo ls -l"
         pwd
         sudo ls -l
@@ -44,20 +44,20 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/TurBoTse/padavan-ng.git /opt/rt-n56u
         mkdir -p /opt/images/
-        #
-        cd /opt/Btools/Setconfig/
+         #
+        cd /opt/Ctools/Setconfig/
         sh install_Setconfig.sh
         #
-        cd /opt/Btools/LANG_CN/
+        cd /opt/Ctools/LANG_CN/
         sh install_LANG_CN.sh
         #
-         cd /opt/Btools/Theme/
+        cd /opt/Ctools/Theme/
         sh install_Theme.sh
         #
-        cd /opt/Btools/Patch/
-        sh install_Patch.sh
+        cd /opt/Ctools/
+        sh install.sh
         #
-        cd /opt/Btools/build_toolchain
+        cd /opt/Ctools/build_toolchain
         sh install_build_toolchain.sh
         #
     - name: Build Firmware
