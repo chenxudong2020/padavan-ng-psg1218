@@ -57,9 +57,11 @@ jobs:
         cd /opt/Ctools/
         sh install.sh
         #
-        cd /opt/Ctools/build_toolchain
-        sh install_build_toolchain.sh
-        #
+    - name: Build ToolChain
+      run: |
+       cd /opt/Ctools/build_toolchain
+       sh install_build_toolchain.sh
+    
     - name: Build Firmware
       run: |
         cd /opt/rt-n56u/trunk
