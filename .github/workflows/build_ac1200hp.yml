@@ -44,6 +44,15 @@ jobs:
         sudo apt-get install libncurses5-dev libstdc++6-4.7-dev libvorbis-dev g++-4.7-multilib git autopoint
         sudo apt-get install autogen sed build-essential intltool libglib2.0-dev xutils-dev
         sudo apt-get install lib32z1-dev lib32stdc++6
+        wget https://hub.fastgit.org/git/git/archive/refs/tags/v1.7.1.tar.gz
+        tar zvxf v1.7.1.tar.gz
+        cd git-1.7.1
+        yum install perl-ExtUtils-MakeMaker package
+        autoconf
+        ./configure --prefix=/usr/local/git --with-iconv=/usr/local/libiconv
+        make && make install 
+        echo "export PATH=$PATH:/usr/local/git/bin" >> /etc/bashrc
+        source /etc/bashrc
     - name: Clone source code
       run: |
         git clone https://github.com/KevinandJacky/RT-AC1200HP_3.0.0.4.380.8287-for-K2.git /opt/asus
