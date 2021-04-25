@@ -41,7 +41,7 @@ jobs:
         sudo apt-get install pkg-config shtool subversion tar texinfo zlib1g zlib1g-dev git-core gettext 
         sudo apt-get install libexpat1-dev libssl-dev cvs gperf unzip python libxml-parser-perl gcc-multilib 
         sudo apt-get install gconf-editor libxml2-dev g++-4.7 g++-multilib gitk libncurses5 mtd-utils 
-        sudo apt-get install libncurses5-dev libstdc++6-4.7-dev libvorbis-dev g++-4.7-multilib git autopoint
+        sudo apt-get install libncurses5-dev libstdc++6-4.7-dev libvorbis-dev g++-4.7-multilib autopoint
         sudo apt-get install autogen sed build-essential intltool libglib2.0-dev xutils-dev
         sudo apt-get install lib32z1-dev lib32stdc++6
         wget https://hub.fastgit.org/git/git/archive/refs/tags/v1.2.6.tar.gz
