@@ -42,20 +42,20 @@ jobs:
         pkg-config zlib1g-dev libgmp3-dev libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev gcc-multilib
     - name: Clone source code
       run: |
-        git clone --depth=1 https://github.com/TurBoTse/padavan-ng.git /opt/rt-n56u
+        git clone --depth=1 https://github.com/chenxudong2020/padavan-ng.git /opt/rt-n56u
         mkdir -p /opt/images/
         #
         cd /opt/Btools/Setconfig/
         sh install_Setconfig.sh
         #
-        # cd /opt/Btools/LANG_CN/
-        # sh install_LANG_CN.sh
+         cd /opt/Btools/LANG_CN/
+         sh install_LANG_CN.sh
         #
          cd /opt/Btools/Theme/
          sh install_Theme.sh
         #
-        # cd /opt/Btools/Patch/
-        # sh install_Patch.sh
+         cd /opt/Btools/Patch/
+         sh install_Patch.sh
         #
         cd /opt/Btools/build_toolchain
         sh install_build_toolchain.sh
