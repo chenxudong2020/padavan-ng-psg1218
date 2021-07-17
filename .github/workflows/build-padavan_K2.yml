@@ -48,14 +48,14 @@ jobs:
         cd /opt/Btools/Setconfig/
         sh install_Setconfig.sh
         #
-        cd /opt/Btools/LANG_CN/
-        sh install_LANG_CN.sh
+        # cd /opt/Btools/LANG_CN/
+        # sh install_LANG_CN.sh
         #
          cd /opt/Btools/Theme/
-        sh install_Theme.sh
+         sh install_Theme.sh
         #
-        cd /opt/Btools/Patch/
-        sh install_Patch.sh
+        # cd /opt/Btools/Patch/
+        # sh install_Patch.sh
         #
         cd /opt/Btools/build_toolchain
         sh install_build_toolchain.sh
