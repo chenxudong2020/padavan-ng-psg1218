@@ -11,6 +11,7 @@ ROOTDIR=`pwd`
   if [ -e "${ROOTDIR}/CN.dict" ] ; then
 		cp -f "${ROOTDIR}/CN.dict" "${DESTDIR}/trunk/user/www/dict/"
 	fi
+        echo 'menu5_30=AliDDNS' >> "${DESTDIR}/trunk/user/www/dict/EN.footer"	
 	echo "--------------复制语言文件结束------------------"
     echo "--------------开始复制中文SSID支持文件----------"
  # trunk/user/httpd/aspbw.c
