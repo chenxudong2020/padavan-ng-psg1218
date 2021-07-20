@@ -810,7 +810,6 @@ menu5_4_desc=配置 USB 设备以及在内网或外网共享文件。
 menu5_5_desc=配置防火墙和防护机制以保护你的网络。
 menu5_6_desc=配置系统以及升级 ZVMODELVZ 的固件。
 menu5_7_desc=监控路由器状态以及查看系统日志。
-menu5_30=阿里DDNS
 statusTitle_System=ZVMODELVZ
 statusTitle_Internet=外部网络状态
 statusTitle_Intranet=内部网络状态
