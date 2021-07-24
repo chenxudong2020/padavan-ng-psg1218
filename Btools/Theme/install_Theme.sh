@@ -4,8 +4,6 @@ DESTDIR=/opt/rt-n56u
 ROOTDIR=`pwd`
 
 default_path="${DESTDIR}/trunk/user/shared/defaults.h"  # 默认文件配置目录
-# sed -i "s/ASUS/\"PHICOMM\"/g" $default_path
-# sed -i "s/GB/CN/g" $default_path
 default_theme_path="${DESTDIR}/trunk/user/www/n56u_ribbon_fixed"
 
     echo "--------------开始复制主题----------------------"

@@ -1,5 +1,5 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: Build Padavan_K2
+name: Build Padavan_newifi-mini
 
 on: 
   release:
@@ -45,23 +45,18 @@ jobs:
         git clone --depth=1 https://gitlab.com/padavan-ng/padavan-ng.git /opt/rt-n56u
         sed -i 's/{ "wl_auth_mode", "psk" },/{ "wl_auth_mode", "open" },/g' /opt/rt-n56u/trunk/user/shared/defaults.c
         sed -i 's/{ "rt_auth_mode", "psk" },/{ "rt_auth_mode", "open" },/g' /opt/rt-n56u/trunk/user/shared/defaults.c
-        sed -i 's/my.router/p.to/g' /opt/rt-n56u/trunk/user/rc/net_wan.c  
+        sed -i 's/my.router/newifi.com/g' /opt/rt-n56u/trunk/user/rc/net_wan.c  
         mkdir -p /opt/images/
         #
-        cd /opt/Btools/Setconfig/
-        sh install_Setconfig.sh
+         cd /opt/Btools/Setconfig/
+         cp -f "/opt/Btools/Setconfig/newifimini.config" "/opt/rt-n56u/trunk/.config"
         #
          cd /opt/Btools/LANG_CN/
+         sed -i 's/PHICOMM/newifi/g' /opt/Btools/LANG_CN/defaults.h
          sh install_LANG_CN.sh
-        #
-         cd /opt/Btools/LANG_CN/
-         sh install_LANG_CN_SSD.sh
         #
          cd /opt/Btools/Theme/
          sh install_Theme.sh
-        #
-         cd /opt/Btools/Patch/
-         sh install_Patch.sh
         #
         cd /opt/Btools/build_toolchain
         sh install_build_toolchain.sh
