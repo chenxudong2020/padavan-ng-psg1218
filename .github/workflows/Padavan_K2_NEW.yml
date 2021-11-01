@@ -54,8 +54,8 @@ jobs:
          cd /opt/Btools/LANG_CN/
          sh install_LANG_CN.sh
         #
-         cd /opt/Btools/LANG_CN/
-         sh install_LANG_CN_SSD.sh
+        # cd /opt/Btools/LANG_CN/
+        # sh install_LANG_CN_SSD.sh
         #
          cd /opt/Btools/Theme/
          sh install_Theme.sh
