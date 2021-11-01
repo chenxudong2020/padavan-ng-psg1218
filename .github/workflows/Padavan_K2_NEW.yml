@@ -59,8 +59,8 @@ jobs:
          cd /opt/Btools/Theme/
          sh install_Theme.sh
         #
-         cd /opt/Btools/Patch/
-         sh install_Patch.sh
+        # cd /opt/Btools/Patch/
+        # sh install_Patch.sh
         # 
         cd /opt/rt-n56u/toolchain
         sudo ./clean_sources.sh
