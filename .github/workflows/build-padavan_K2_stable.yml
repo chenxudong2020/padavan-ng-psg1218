@@ -1,5 +1,5 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: Build Padavan_K2_NEW
+name: build-padavan_K2_stable
 
 on: 
   release:
@@ -22,7 +22,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - name: 初始化构建环境
+    - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
@@ -40,11 +40,9 @@ jobs:
         sudo apt-get -y install unzip libtool-bin curl cmake gperf gawk flex bison nano xxd \
         cpio git python-docutils gettext automake autopoint texinfo build-essential help2man \
         pkg-config zlib1g-dev libgmp3-dev libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev gcc-multilib
-    - name: 克隆源码
+    - name: Clone source code
       run: |
-        git clone --depth=1 https://gitlab.com/dm38/padavan-ng.git /opt/rt-n56u    
-    - name: 自定义修改
-      run: |
+        git clone --depth=1 https://gitlab.com/padavan-ng/padavan-ng.git /opt/rt-n56u
         sed -i 's/{ "wl_auth_mode", "psk" },/{ "wl_auth_mode", "open" },/g' /opt/rt-n56u/trunk/user/shared/defaults.c
         sed -i 's/{ "rt_auth_mode", "psk" },/{ "rt_auth_mode", "open" },/g' /opt/rt-n56u/trunk/user/shared/defaults.c
         sed -i 's/my.router/p.to/g' /opt/rt-n56u/trunk/user/rc/net_wan.c  
@@ -56,35 +54,37 @@ jobs:
          cd /opt/Btools/LANG_CN/
          sh install_LANG_CN.sh
         #
+         cd /opt/Btools/LANG_CN/
+         sh install_LANG_CN_SSD.sh
+        #
          cd /opt/Btools/Theme/
          sh install_Theme.sh
         #
-        # cd /opt/Btools/Patch/
-        # sh install_Patch.sh
-        # 
-        cd /opt/rt-n56u/toolchain
-        sudo ./clean_sources.sh
-        sudo ./build_toolchain.sh
+         cd /opt/Btools/Patch/
+         sh install_Patch.sh
         #
-    - name: 构建固件
+        cd /opt/Btools/build_toolchain
+        sh install_build_toolchain.sh
+        #
+    - name: Build Firmware
       run: |
         cd /opt/rt-n56u/trunk
         sudo ./clear_tree.sh
         sudo ./build_firmware.sh
         sudo mv -f images/*.trx /opt/images/
-    - name : 上传固件GitHub
+    - name : Upload packages
       uses: actions/upload-artifact@master
       if: always()
       with:
         name: Padavan-packages
         path: /opt/images
-    - name: 上传到cowtransfer
+    - name: Upload firmware to cowtransfer
       if: always()
       run: |
         curl -fsSL git.io/file-transfer | sh
         ./transfer cow --block 2621440 -s -p 64 --no-progress /opt/images 2>&1 | tee cowtransfer.log
         echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
-    - name: 上传到WeTransfer
+    - name: Upload firmware to WeTransfer
       if: always()
       run: |
         curl -fsSL git.io/file-transfer | sh
