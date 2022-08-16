@@ -43,7 +43,7 @@ jobs:
         pkg-config zlib1g-dev libgmp3-dev libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev gcc-multilib
     - name: 克隆源码
       run: |
-        git clone --depth=1 https://github.com/kto1122/padavan-ng.git /opt/rt-n56u
+        git clone --depth=1 https://gitlab.com/mahtabctg/padavan-ng.git /opt/rt-n56u
     - name: 自定义修改
       run: |
         sed -i 's/{ "wl_auth_mode", "psk" },/{ "wl_auth_mode", "open" },/g' /opt/rt-n56u/trunk/user/shared/defaults.c
